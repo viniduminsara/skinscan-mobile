@@ -1,6 +1,8 @@
 import { Redirect } from 'expo-router';
+import { useAuth } from '@/src/providers/AuthProvider';
+import { View, ActivityIndicator } from 'react-native';
+import { COLORS } from '@/src/theme';
 
 export default function Index() {
-    // TODO: Check if onboarding is completed or user is logged in
-    return <Redirect href="/(auth)/onboarding" />;
+    return null;
 }

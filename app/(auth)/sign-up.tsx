@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import { Lock, Mail, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '@/src/providers/AuthProvider';
+import Toast from 'react-native-toast-message';
 
 export default function SignUpScreen() {
     const router = useRouter();
@@ -15,13 +17,28 @@ export default function SignUpScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const { register, login } = useAuth();
+
     const handleSignUp = async () => {
+        if (!name || !email || !password) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill all fields' });
+            return;
+        }
+
         setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            // Some backends expect username, some just name. Let's send both or map name to username
+            await register({ username: name, email, password });
+
+            // Wait a moment and login explicitly if register doesn't set token
+            // In our case, register might not set the token if the backend doesn't return it
+            // Let's rely on our AuthProvider's register function
             router.replace('/(tabs)');
-        }, 1500);
+        } catch (error: any) {
+            // Handled globally in api.ts
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

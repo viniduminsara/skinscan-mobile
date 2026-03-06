@@ -1,6 +1,7 @@
 import { Button } from '@/src/components/Button';
 import { Card } from '@/src/components/Card';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
+import { useAuth } from '@/src/providers/AuthProvider';
 import { COLORS, FONT_SIZE, SPACING } from '@/src/theme';
 import { useRouter } from 'expo-router';
 import { ChevronRight, HardDrive, HelpCircle, LogOut, Shield } from 'lucide-react-native';
@@ -11,6 +12,7 @@ export default function ProfileScreen() {
     const router = useRouter();
     const [federatedLearning, setFederatedLearning] = useState(true);
     const [localStorage, setLocalStorage] = useState(true);
+    const { logout } = useAuth();
 
     const handleLogout = () => {
         Alert.alert(
@@ -18,7 +20,12 @@ export default function ProfileScreen() {
             "Are you sure you want to sign out?",
             [
                 { text: "Cancel", style: "cancel" },
-                { text: "Sign Out", style: "destructive", onPress: () => router.replace('/(auth)/sign-in') }
+                {
+                    text: "Sign Out", style: "destructive", onPress: () => {
+                        logout();
+                        router.replace('/(auth)/sign-in')
+                    }
+                }
             ]
         );
     };

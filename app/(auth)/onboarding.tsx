@@ -1,5 +1,6 @@
 import { Button } from '@/src/components/Button';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
+import { useAuth } from '@/src/providers/AuthProvider';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '@/src/theme';
 import { useRouter } from 'expo-router';
 import { Scan, ShieldCheck, Smartphone } from 'lucide-react-native';
@@ -33,17 +34,18 @@ export default function OnboardingScreen() {
     const router = useRouter();
     const flatListRef = useRef<FlatList>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const { completeOnboarding } = useAuth();
 
     const handleNext = () => {
         if (currentIndex < SLIDES.length - 1) {
             flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
         } else {
-            router.replace('/(auth)/sign-in'); // Or sign-up
+            completeOnboarding();
         }
     };
 
     const handleSkip = () => {
-        router.replace('/(auth)/sign-in');
+        completeOnboarding();
     };
 
     const renderItem = ({ item }: { item: typeof SLIDES[0] }) => {

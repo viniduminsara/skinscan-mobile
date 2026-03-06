@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '@/src/providers/AuthProvider';
+import Toast from 'react-native-toast-message';
 
 export default function SignInScreen() {
     const router = useRouter();
@@ -14,13 +16,23 @@ export default function SignInScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const { login } = useAuth();
+
     const handleSignIn = async () => {
+        if (!email || !password) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter email and password' });
+            return;
+        }
+
         setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            await login({ email, password });
             router.replace('/(tabs)');
-        }, 1500);
+        } catch (error: any) {
+            // Already handled in api.ts
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
