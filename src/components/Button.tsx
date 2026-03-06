@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '../theme';
 
 interface ButtonProps {
@@ -9,6 +9,7 @@ interface ButtonProps {
     loading?: boolean;
     disabled?: boolean;
     style?: any;
+    icon?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -17,7 +18,8 @@ export const Button: React.FC<ButtonProps> = ({
     variant = 'primary',
     loading = false,
     disabled = false,
-    style
+    style,
+    icon
 }) => {
     const isPrimary = variant === 'primary';
     const isOutline = variant === 'outline';
@@ -47,7 +49,10 @@ export const Button: React.FC<ButtonProps> = ({
             {loading ? (
                 <ActivityIndicator color={isPrimary ? COLORS.white : COLORS.primary} />
             ) : (
-                <Text style={textStyles}>{title}</Text>
+                <View style={styles.contentContainer}>
+                    {icon && <View style={styles.iconContainer}>{icon}</View>}
+                    <Text style={textStyles}>{title}</Text>
+                </View>
             )}
         </TouchableOpacity>
     );
@@ -87,4 +92,12 @@ const styles = StyleSheet.create({
     disabledText: {
         color: COLORS.textSecondary,
     },
+    contentContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconContainer: {
+        marginRight: SPACING.s,
+    }
 });

@@ -41,11 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check for stored token on mount
         const loadSession = async () => {
             try {
+                // Ensure onboarding state resolves first
                 const onboarded = await AsyncStorage.getItem('hasCompletedOnboarding');
                 if (onboarded === 'true') {
                     setHasOnboarded(true);
                 }
+            } catch (e) {
+                console.error("Failed to read onboarding state", e);
+            }
 
+            try {
                 const storedToken = await AsyncStorage.getItem('userToken');
                 if (storedToken) {
                     setToken(storedToken);

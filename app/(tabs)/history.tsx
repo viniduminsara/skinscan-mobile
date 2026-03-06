@@ -4,41 +4,77 @@ import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '@/src/theme';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Search } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { api } from '@/src/lib/api';
 
-// Mock History Data
-const HISTORY_DATA = [
-    { id: '1', date: 'Feb 15, 2026', label: 'Benign Nevus', confidence: '98%', risk: 'Low', image: 'https://via.placeholder.com/100' },
-    { id: '2', date: 'Feb 10, 2026', label: 'Dermatofibroma', confidence: '92%', risk: 'Low', image: 'https://via.placeholder.com/100' },
-    { id: '3', date: 'Jan 28, 2026', label: 'Actinic Keratosis', confidence: '85%', risk: 'Medium', image: 'https://via.placeholder.com/100' },
-    { id: '4', date: 'Jan 15, 2026', label: 'Benign Nevus', confidence: '99%', risk: 'Low', image: 'https://via.placeholder.com/100' },
-];
+interface ScanItem {
+    id: string;
+    date: string;
+    result: {
+        prediction: string;
+        confidence: number;
+        riskStatus?: number;
+    };
+    imageString?: string;
+}
 
 export default function HistoryScreen() {
     const router = useRouter();
+    const [scans, setScans] = useState<ScanItem[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const navigateToResult = (item: any) => {
-        // In a real app, pass ID
-        router.push('/results');
+    useEffect(() => {
+        const fetchScans = async () => {
+            try {
+                const response = await api.get<{ body: ScanItem[] }>('/scans/');
+                setScans(response.body);
+            } catch (error) {
+                console.error('Failed to load history', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchScans();
+    }, []);
+
+    const navigateToResult = (item: ScanItem) => {
+        router.push(`/results/${item.id}`);
     };
 
-    const renderItem = ({ item }: { item: typeof HISTORY_DATA[0] }) => (
+    const getRiskLabel = (risk?: number) => {
+        if (risk === undefined || risk === null || risk === -1) return 'Unknown';
+        if (risk === 0) return 'Low';
+        if (risk === 1) return 'Medium';
+        return 'High';
+    };
+
+    const isLowRisk = (risk?: number) => risk === 0;
+
+    const filteredScans = scans.filter(scan =>
+        scan.result?.prediction?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const renderItem = ({ item }: { item: ScanItem }) => (
         <Card
             style={styles.historyCard}
             onPress={() => navigateToResult(item)}
         >
             <View style={styles.cardRow}>
-                <Image source={{ uri: item.image }} style={styles.thumbnail} />
+                {item.imageString ? (
+                    <Image source={{ uri: `${item.imageString}` }} style={styles.thumbnail} />
+                ) : (
+                    <View style={styles.thumbnail} />
+                )}
                 <View style={styles.cardInfo}>
-                    <Text style={styles.label}>{item.label}</Text>
-                    <Text style={styles.date}>{item.date}</Text>
+                    <Text style={styles.label}>{item.result?.prediction || 'Unknown'}</Text>
+                    <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
                     <View style={[
                         styles.riskBadge,
-                        item.risk === 'Low' ? styles.lowRisk : styles.mediumRisk
+                        isLowRisk(item.result?.riskStatus) ? styles.lowRisk : styles.mediumRisk
                     ]}>
-                        <Text style={styles.riskText}>{item.risk} Risk • {item.confidence}</Text>
+                        <Text style={styles.riskText}>{getRiskLabel(item.result?.riskStatus)} Risk • {item.result ? (item.result.confidence).toFixed(1) + '%' : 'N/A'}</Text>
                     </View>
                 </View>
                 <ChevronRight size={20} color={COLORS.textSecondary} />
@@ -62,13 +98,21 @@ export default function HistoryScreen() {
                 />
             </View>
 
-            <FlatList
-                data={HISTORY_DATA}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-            />
+            {loading ? (
+                <ActivityIndicator style={{ marginTop: SPACING.xl }} color={COLORS.primary} size="large" />
+            ) : filteredScans.length > 0 ? (
+                <FlatList
+                    data={filteredScans}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                />
+            ) : (
+                <View style={{ marginTop: SPACING.xl, alignItems: 'center' }}>
+                    <Text style={{ color: COLORS.textSecondary }}>No scans found.</Text>
+                </View>
+            )}
         </ScreenContainer>
     );
 }

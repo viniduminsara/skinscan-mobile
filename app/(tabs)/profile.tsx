@@ -12,7 +12,7 @@ export default function ProfileScreen() {
     const router = useRouter();
     const [federatedLearning, setFederatedLearning] = useState(true);
     const [localStorage, setLocalStorage] = useState(true);
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
 
     const handleLogout = () => {
         Alert.alert(
@@ -22,8 +22,32 @@ export default function ProfileScreen() {
                 { text: "Cancel", style: "cancel" },
                 {
                     text: "Sign Out", style: "destructive", onPress: () => {
-                        logout();
                         router.replace('/(auth)/sign-in')
+                        logout();
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            "Delete Account",
+            "This action is permanent and cannot be undone. All your scans and models will be deleted. Are you sure?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const { api } = require('@/src/lib/api');
+                            await api.delete('/users/profile');
+                            logout();
+                            router.replace('/(auth)/sign-in');
+                        } catch (e: any) {
+                            Alert.alert('Error', 'Failed to delete account');
+                        }
                     }
                 }
             ]
@@ -57,10 +81,10 @@ export default function ProfileScreen() {
             {/* Profile Header */}
             <View style={styles.header}>
                 <View style={styles.avatarContainer}>
-                    <Text style={styles.avatarText}>VM</Text>
+                    <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() || 'U'}</Text>
                 </View>
-                <Text style={styles.name}>Vinidu Minsara</Text>
-                <Text style={styles.email}>vinidu@example.com</Text>
+                <Text style={styles.name}>{user?.username || 'SkinScan User'}</Text>
+                <Text style={styles.email}>{user?.email || 'N/A'}</Text>
                 <Button
                     title="Edit Profile"
                     variant="outline"
@@ -94,7 +118,7 @@ export default function ProfileScreen() {
                     <Text style={styles.actionText}>Clear Local Data</Text>
                 </TouchableOpacity>
                 <View style={styles.divider} />
-                <TouchableOpacity style={styles.actionRow} onPress={() => { }}>
+                <TouchableOpacity style={styles.actionRow} onPress={handleDeleteAccount}>
                     <Text style={[styles.actionText, styles.destructiveText]}>Delete Account</Text>
                 </TouchableOpacity>
             </Card>

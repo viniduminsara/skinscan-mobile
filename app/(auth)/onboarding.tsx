@@ -36,16 +36,18 @@ export default function OnboardingScreen() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const { completeOnboarding } = useAuth();
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (currentIndex < SLIDES.length - 1) {
             flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
         } else {
-            completeOnboarding();
+            await completeOnboarding();
+            router.replace('/(auth)/sign-in');
         }
     };
 
-    const handleSkip = () => {
-        completeOnboarding();
+    const handleSkip = async () => {
+        await completeOnboarding();
+        router.replace('/(auth)/sign-in');
     };
 
     const renderItem = ({ item }: { item: typeof SLIDES[0] }) => {

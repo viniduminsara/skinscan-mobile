@@ -18,22 +18,32 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
+    // Wait until AuthProvider has finished checking AsyncStorage
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = inAuthGroup && segments[1] === 'onboarding';
 
+    // 1. If user has NOT onboarded, they MUST go to onboarding regardless of auth state
     if (!hasOnboarded) {
       if (!inOnboarding) {
         router.replace('/(auth)/onboarding');
       }
-    } else if (!user) {
+      return; // Stop evaluating further rules
+    }
+
+    // 2. If user HAS onboarded but is NOT logged in, they MUST go to sign-in
+    if (!user) {
+      // If we are not in the auth group or we are in onboarding, redirect to signin
       if (!inAuthGroup || inOnboarding) {
-        // Redir to sign-in if trying to access non-auth area but not logged in, OR trying to go back to onboarding if already onboarded
         router.replace('/(auth)/sign-in');
       }
-    } else if (user && inAuthGroup) {
-      // Redirect to tabs if logged in and inside auth group.
+      return;
+    }
+
+    // 3. User HAS onboarded AND IS logged in
+    if (inAuthGroup) {
+      // If they try to go back to sign-in or onboarding while logged in, kick them to tabs
       router.replace('/(tabs)');
     }
   }, [user, isLoading, hasOnboarded, segments]);
@@ -43,6 +53,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack.Screen name="results/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }

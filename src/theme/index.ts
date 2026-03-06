@@ -9,6 +9,7 @@ export const COLORS = {
   success: '#2ECC71',
   border: '#E0E0E0',
   white: '#FFFFFF',
+  warning: '#FFC107',
 };
 
 export const SPACING = {

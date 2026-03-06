@@ -4,32 +4,76 @@ import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '@/src/theme';
 import { useRouter } from 'expo-router';
 import { Camera, Image as ImageIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { api } from '@/src/lib/api';
+import Toast from 'react-native-toast-message';
 
 export default function ScanScreen() {
     const router = useRouter();
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
 
-    const handlePickImage = () => {
-        // Mock image for demo
-        setImageUri('https://via.placeholder.com/300');
+    const handlePickImage = async () => {
+        // Request permissions
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.granted === false) {
+            alert('Permission to access camera roll is required!');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+        }
     };
 
-    const handleTakePhoto = () => {
-        // Mock camera
-        Alert.alert('Camera', 'Opening camera...');
-        setImageUri('https://via.placeholder.com/300');
+    const handleTakePhoto = async () => {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (permissionResult.granted === false) {
+            alert('Permission to access camera is required!');
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+        }
     };
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
         if (!imageUri) return;
         setAnalyzing(true);
-        setTimeout(() => {
+        try {
+            const response = await api.upload<{ body: { _id?: string; id?: string } }>('/scans/web', imageUri);
+            const scanId = response.body?._id || response.body?.id;
+
+            if (scanId) {
+                // @ts-ignore - Dynamic routes string interpolation
+                router.push(`/results/${scanId}`);
+            } else {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Analysis Error',
+                    text2: 'Failed to retrieve scan ID from response',
+                });
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
             setAnalyzing(false);
-            // Navigate to results
-            router.push('/results');
-        }, 2000);
+        }
     };
 
     return (
