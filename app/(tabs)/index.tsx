@@ -1,9 +1,9 @@
 import { Card } from '@/src/components/Card';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '@/src/theme';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronRight, Scan, ShieldCheck } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, Text, View, Image } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -32,20 +32,28 @@ export default function HomeScreen() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const response = await api.get<{ body: DashboardData }>('/dashboard');
-        setDashboardData(response.body);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-    fetchDashboard();
-  }, []);
+      const fetchDashboard = async () => {
+        try {
+          const response = await api.get<{ body: DashboardData }>('/dashboard');
+          if (isActive) setDashboardData(response.body);
+        } catch (error) {
+          console.error('Failed to fetch dashboard data', error);
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+
+      fetchDashboard();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   const handleNewScan = () => {
     router.push('/(tabs)/scan');
@@ -74,7 +82,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good Morning,</Text>
+          <Text style={styles.greeting}>Good Evening,</Text>
           <Text style={styles.username}>{user?.username || 'User'}</Text>
         </View>
         <View style={styles.avatar}>
@@ -176,7 +184,7 @@ export default function HomeScreen() {
 
       {/* Privacy Badge */}
       <View style={styles.privacyBadge}>
-        <ShieldCheck size={16} color={COLORS.options} />
+        <ShieldCheck size={16} color={COLORS.success} />
         <Text style={styles.privacyText}>Federated Learning Active • Data on Device</Text>
       </View>
 

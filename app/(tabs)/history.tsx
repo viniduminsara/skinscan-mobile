@@ -2,9 +2,9 @@ import { Card } from '@/src/components/Card';
 import { Input } from '@/src/components/Input';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '@/src/theme';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronRight, Search } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/src/lib/api';
 
@@ -25,19 +25,26 @@ export default function HistoryScreen() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        const fetchScans = async () => {
-            try {
-                const response = await api.get<{ body: ScanItem[] }>('/scans/');
-                setScans(response.body);
-            } catch (error) {
-                console.error('Failed to load history', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchScans();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+            const fetchScans = async () => {
+                try {
+                    const response = await api.get<{ body: ScanItem[] }>('/scans/');
+                    if (isActive) setScans(response.body);
+                } catch (error) {
+                    console.error('Failed to load history', error);
+                } finally {
+                    if (isActive) setLoading(false);
+                }
+            };
+            fetchScans();
+
+            return () => {
+                isActive = false;
+            };
+        }, [])
+    );
 
     const navigateToResult = (item: ScanItem) => {
         router.push(`/results/${item.id}`);

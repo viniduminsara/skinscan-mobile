@@ -62,6 +62,7 @@ export default function ScanScreen() {
             if (scanId) {
                 // @ts-ignore - Dynamic routes string interpolation
                 router.push(`/results/${scanId}`);
+                setImageUri(null);
             } else {
                 Toast.show({
                     type: 'error',

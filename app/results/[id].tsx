@@ -3,13 +3,18 @@ import { Card } from '@/src/components/Card';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { BORDER_RADIUS, COLORS, FONT_SIZE, SPACING } from '@/src/theme';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { AlertCircle, Save, Trash2, Crosshair, ListChecks } from 'lucide-react-native';
+import { AlertCircle, Save, Trash2, Crosshair, ListChecks, Download, TrendingUp } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Switch, Text, View, Alert } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Switch, Text, View, Alert, Dimensions } from 'react-native';
 import { api } from '@/src/lib/api';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { LineChart } from 'react-native-chart-kit';
 
 interface ScanDetail {
-    _id: string;
+    _id?: string;
+    id?: string;
+    date?: string;
     imageString: string;
     result: {
         prediction: string;
@@ -25,7 +30,9 @@ export default function ResultsScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const [scanData, setScanData] = useState<ScanDetail | null>(null);
+    const [historyScans, setHistoryScans] = useState<ScanDetail[]>([]);
     const [loading, setLoading] = useState(true);
+    const [generatingPdf, setGeneratingPdf] = useState(false);
     const [showHeatmap, setShowHeatmap] = useState(false);
 
     useEffect(() => {
@@ -34,6 +41,11 @@ export default function ResultsScreen() {
             try {
                 const response = await api.get<{ body: ScanDetail }>(`/scans/${id}`);
                 setScanData(response.body);
+
+                const historyRes = await api.get<{ body: ScanDetail[] }>('/scans');
+                if (historyRes.body) {
+                    setHistoryScans(historyRes.body);
+                }
             } catch (error) {
                 console.error("Failed to load scan details", error);
             } finally {
@@ -42,6 +54,21 @@ export default function ResultsScreen() {
         };
         fetchScanDetals();
     }, [id]);
+
+    const sameDiseaseScans = React.useMemo(() => {
+        if (!scanData || historyScans.length === 0) return [];
+        return historyScans
+            .filter(s => s.result.prediction === scanData.result.prediction && s.result.affectedArea !== undefined && s.result.affectedArea !== null)
+            .sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+    }, [scanData, historyScans]);
+
+    const showChart = sameDiseaseScans.length > 3;
+
+    const chartLabels = sameDiseaseScans.map(s => {
+        const d = new Date(s.date || 0);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+    });
+    const chartDataArray = sameDiseaseScans.map(s => s.result.affectedArea || 0);
 
     const handleDelete = () => {
         Alert.alert(
@@ -63,6 +90,91 @@ export default function ResultsScreen() {
                 }
             ]
         );
+    };
+
+    const handleGeneratePdf = async () => {
+        if (!scanData) return;
+        setGeneratingPdf(true);
+        try {
+            const riskLabel = getRiskLabel(scanData.result?.riskStatus);
+            // Prepare HTML content
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+                    <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
+                        h1 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
+                        .info-row { display: flex; justify-content: space-between; padding: 10px; background-color: #f8fafc; margin-bottom: 5px; border-radius: 5px; }
+                        .images { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                        .images div { width: 48%; }
+                        .images img { width: 100%; border-radius: 10px; }
+                        .chart-placeholder { text-align: left; margin-top: 20px; padding: 20px; background-color: #f1f5f9; border-radius: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>SkinScan Analysis Report</h1>
+                    <p>Generated on ${new Date().toLocaleDateString()}</p>
+                    
+                    <div class="images">
+                        <div>
+                            <h3>Original Image</h3>
+                            <img src="${scanData.imageString}" />
+                        </div>
+                        <div>
+                            <h3>Heatmap Analysis</h3>
+                            <img src="${scanData.result.heatmap || scanData.imageString}" />
+                        </div>
+                    </div>
+
+                    <h2>Detection Results</h2>
+                    <div class="info-row">
+                        <strong>Condition:</strong>
+                        <span>${scanData.result.prediction}</span>
+                    </div>
+                    <div class="info-row">
+                        <strong>Confidence:</strong>
+                        <span>${(scanData.result.confidence || 0).toFixed(1)}%</span>
+                    </div>
+                    ${scanData.result.affectedArea !== undefined && scanData.result.affectedArea !== null ? `
+                    <div class="info-row">
+                        <strong>Affected Area:</strong>
+                        <span>${Number(scanData.result.affectedArea).toFixed(1)}%</span>
+                    </div>
+                    ` : ''}
+                    <div class="info-row">
+                        <strong>Risk Status:</strong>
+                        <span>${riskLabel}</span>
+                    </div>
+
+                    ${showChart ? `
+                    <div class="chart-placeholder">
+                        <h3>Affected Area History</h3>
+                        <p>There are ${sameDiseaseScans.length} previous scans for this condition.</p>
+                        <ul>
+                            <li><strong>Initial Affected Area:</strong> ${sameDiseaseScans[0].result.affectedArea}% on ${new Date(sameDiseaseScans[0].date || 0).toLocaleDateString()}</li>
+                            <li><strong>Latest Affected Area:</strong> ${sameDiseaseScans[sameDiseaseScans.length - 1].result.affectedArea}% on ${new Date(sameDiseaseScans[sameDiseaseScans.length - 1].date || 0).toLocaleDateString()}</li>
+                        </ul>
+                    </div>
+                    ` : ''}
+                </body>
+            </html>
+            `;
+
+            const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(uri);
+            } else {
+                Alert.alert("Error", "Sharing is not available on this device");
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Failed to generate PDF");
+        } finally {
+            setGeneratingPdf(false);
+        }
     };
 
     const handleRescan = () => {
@@ -134,6 +246,47 @@ export default function ResultsScreen() {
                         />
                     </View>
                 </Card>
+
+                <View style={styles.actions}>
+                    <Button
+                        title={generatingPdf ? "Generating..." : "Generate PDF Report"}
+                        onPress={handleGeneratePdf}
+                        disabled={generatingPdf}
+                        style={[styles.saveButton, { backgroundColor: COLORS.success }]}
+                        icon={generatingPdf ? <ActivityIndicator color={COLORS.white} /> : <Download size={20} color={COLORS.white} />}
+                    />
+                </View>
+
+                {showChart && chartLabels.length > 0 && chartDataArray.length > 0 && (
+                    <Card style={styles.chartCard}>
+                        <View style={styles.infoHeader}>
+                            <TrendingUp size={20} color={COLORS.primary} />
+                            <Text style={styles.infoTitle}>Affected Area Over Time</Text>
+                        </View>
+                        <View style={{ alignItems: 'center', marginTop: SPACING.m }}>
+                            <LineChart
+                                data={{
+                                    labels: chartLabels,
+                                    datasets: [{ data: chartDataArray }]
+                                }}
+                                width={Dimensions.get("window").width - SPACING.l * 2 - SPACING.l * 2}
+                                height={220}
+                                chartConfig={{
+                                    backgroundColor: COLORS.white,
+                                    backgroundGradientFrom: COLORS.white,
+                                    backgroundGradientTo: COLORS.white,
+                                    decimalPlaces: 1,
+                                    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+                                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                    style: { borderRadius: 16 },
+                                    propsForDots: { r: "4", strokeWidth: "2", stroke: COLORS.primary }
+                                }}
+                                bezier
+                                style={{ marginVertical: 8, borderRadius: 16, marginLeft: -SPACING.m }}
+                            />
+                        </View>
+                    </Card>
+                )}
 
                 <Card style={styles.infoCard}>
                     <View style={styles.infoHeader}>
@@ -222,6 +375,10 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.l,
         padding: SPACING.l,
     },
+    chartCard: {
+        marginBottom: SPACING.l,
+        padding: SPACING.l,
+    },
     resultHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -295,8 +452,9 @@ const styles = StyleSheet.create({
     },
     actions: {
         gap: SPACING.m,
+        marginBottom: SPACING.l,
     },
     saveButton: {
-        marginBottom: SPACING.s,
+        marginBottom: 0,
     }
 });
