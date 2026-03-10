@@ -107,10 +107,10 @@ export const api = {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const errorMsg = data.message || 'Upload failed';
+                const errorMsg = data.message || 'Analysis failed';
                 Toast.show({
                     type: 'error',
-                    text1: 'Upload Error',
+                    text1: 'Analysis Failed',
                     text2: errorMsg,
                 });
                 return Promise.reject(new Error(errorMsg));

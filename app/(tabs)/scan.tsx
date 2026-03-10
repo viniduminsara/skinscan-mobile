@@ -69,9 +69,10 @@ export default function ScanScreen() {
                     text1: 'Analysis Error',
                     text2: 'Failed to retrieve scan ID from response',
                 });
+                setImageUri(null);
             }
         } catch (error) {
-            console.error(error);
+            setImageUri(null);
         } finally {
             setAnalyzing(false);
         }
