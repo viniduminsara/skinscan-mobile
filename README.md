@@ -1,50 +1,67 @@
-# Welcome to your Expo app 👋
+# SkinScan Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The mobile companion for the SkinScan project, built with Expo and React Native. It allows users to capture skin images directly via camera, receive AI-powered analysis, and track history.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Camera Integration**: Easy image capture using `expo-image-picker`.
+- **Real-time Analysis**: Swift interaction with the ML-powered backend API.
+- **Scan History**: Full track record of previous scans with risk level indicators.
+- **PDF Reports**: In-app generation and sharing of medical-style analysis reports.
+- **Interactive Charts**: Progress tracking for skin conditions over time.
+- **User Authentication**: Secure login and Supabase/Google integration.
 
+## Tech Stack
+
+- **Framework**: Expo (SDK 54)
+- **Language**: TypeScript
+- **Navigation**: Expo Router (File-based routing)
+- **Components**: React Native with custom design system
+- **Icons**: Lucide React Native
+- **Storage**: AsyncStorage
+- **PDF/Printing**: Expo Print, Expo Sharing
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18+)
+- [Expo Go](https://expo.dev/go) app on your mobile device OR an emulator.
+
+### Installation
+
+1. Navigate to the mobile directory:
+   ```bash
+   cd skinscan-mobile
+   ```
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Start the app
+### Configuration
 
-   ```bash
-   npx expo start
-   ```
+Create a `.env` file or export the following variables:
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```env
+EXPO_PUBLIC_API_URL=http://your-local-ip:8080/api/v1
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Running the App
 
-## Learn more
+Start the Expo development server:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm start
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Press **i** for iOS simulator.
+- Press **a** for Android emulator.
+- Scan the QR code with **Expo Go** to run on a physical device.
 
-## Join the community
+## Project Structure
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `app/`: Expo Router directory handles screens and navigation.
+- `src/components/`: Reusable native components.
+- `src/lib/`: API client and utility logic.
+- `src/theme/`: Shared color, spacing, and typography tokens.
