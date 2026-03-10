@@ -75,7 +75,7 @@ export default function HistoryScreen() {
                     <View style={styles.thumbnail} />
                 )}
                 <View style={styles.cardInfo}>
-                    <Text style={styles.label}>{item.result?.prediction || 'Unknown'}</Text>
+                    <Text style={styles.label}>{item.result?.prediction === 'Unknown_Normal' ? 'Normal' : item.result?.prediction || 'Unknown'}</Text>
                     <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
                     <View style={[
                         styles.riskBadge,

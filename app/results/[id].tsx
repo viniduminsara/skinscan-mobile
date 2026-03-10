@@ -230,7 +230,7 @@ export default function ResultsScreen() {
             <View style={styles.content}>
                 <Card style={styles.resultCard}>
                     <View style={styles.resultHeader}>
-                        <Text style={styles.label}>{scanData.result?.prediction || 'Unknown'}</Text>
+                        <Text style={styles.label}>{scanData.result?.prediction === 'Unknown_Normal' ? 'Normal' : scanData.result?.prediction}</Text>
                         <View style={[styles.badge, { backgroundColor: getRiskColor(scanData.result?.riskStatus) }]}>
                             <Text style={styles.badgeText}>{getRiskLabel(scanData.result?.riskStatus)}</Text>
                         </View>
